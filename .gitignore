@@ -1,0 +1,8 @@
+.serverless
+.vscode
+*.pyc
+*.pyo
+venv
+node_modules
+env.yml
+dynamodb.json
