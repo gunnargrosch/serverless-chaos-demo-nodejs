@@ -1,10 +1,10 @@
 # Serverless Chaos Engineering Demo
 
-This example demonstrates how to use Adrian Hornsby's Failure Injection Layer (https://github.com/adhorn/FailureInjectionLayer) to perform chaos engineering experiments on a serverless environment.
+This demo site uses Gunnar Grosch's failure-lambda NPM package (https://github.com/gunnargrosch/failure-lambda) to perform chaos engineering experiments on a serverless environment. More information on installation, configuration and usage at https://github.com/gunnargrosch/serverless-chaos-demo.
 
 ## Description
 
-The demo application consists of a simple serverless app containing three different functions behind an API Gateway and a static webpage showing the result of these functions. The functions fetch an url for an image at random from a DynamoDB table. An example can be seen at (https://demo.serverlesschaos.com/). By using the failure injection layer you are able to inject failure to each function and see on the page what happens.
+The demo application consists of a simple serverless app containing three different functions behind an API Gateway and a static webpage showing the result of these functions. The functions fetch an url for an image at random from a DynamoDB table. An example can be seen at (https://demo.serverlesschaos.com/). By using the failure-labda NPM package you are able to inject failure to each function and see on the page what happens.
 
 ![Serverless Chaos Demo Architecture](client/dist/images/serverless-chaos-demo-architecture.png?raw=true "Serverless Chaos Demo Architecture")
 
@@ -32,7 +32,7 @@ npm install --save serverless-finch
 account: <your account number>
 bucketName: <your bucket name>
 layer: <arn of the lambda layer>
-failure_conf: '{"isEnabled": false, "delay": 400, "error_code": 404, "exception_msg": "I failed", "rate": 1}'
+failure_conf: '{"isEnabled": false, "failureMode": "latency", "rate": 1, "minLatency": 100, "maxLatency": 400, "exceptionMsg": "Exception message!", "statusCode": 404, "diskSpace": 100, "blacklist": ["s3.*.amazonaws.com", "dynamodb.*.amazonaws.com"]}'
 ```
 5. Deploy the serverless application using Serverless Framework.
 ```bash
@@ -66,6 +66,10 @@ aws dynamodb batch-write-item --request-items file://dynamodb.json
 This is still a really early version of the app. Features will be added on a regular basis.
 
 ## Changelog
+
+### 2020-02-21 v0.3
+
+* 
 
 ### 2019-07-16 v0.2
 
