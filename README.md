@@ -23,43 +23,32 @@ This is prepared to be installed using the Serverless Framework (https://serverl
 ```bash
 npm install -g serverless
 ```
-3. Install Serverless Finch plugin for deployment of the static webpage.
-```bash
-npm install --save serverless-finch
-```
-4. Create an env.yml file in the root folder based on the env.yml.template contents.
-```bash
-account: <your account number>
-bucketName: <your bucket name>
-layer: <arn of the lambda layer>
-failure_conf: '{"isEnabled": false, "failureMode": "latency", "rate": 1, "minLatency": 100, "maxLatency": 400, "exceptionMsg": "Exception message!", "statusCode": 404, "diskSpace": 100, "blacklist": ["s3.*.amazonaws.com", "dynamodb.*.amazonaws.com"]}'
-```
-5. Deploy the serverless application using Serverless Framework.
+3. Deploy the serverless application using Serverless Framework.
 ```bash
 sls deploy --region YOUR_PREFERRED_REGION --stage YOUR_PREFERRED_STAGE
 ```
-6. Create an env.js file in the folder ./client/dist/assets/js/ based on the env.js.template contents (located in the same folder) with the endpoints from sls deploy output.
+4. Create an env.js file in the folder ./client/dist/assets/js/ based on the env.js.template contents (located in the same folder) with the endpoints from sls deploy output.
 ```bash
 //Enter your API Gateway endpoints for each function here
 var function1 = "<function1 api gateway endpoint>";
 var function2 = "<function2 api gateway endpoint>";
 var function3 = "<function3 api gateway endpoint>";
 ```
-7. Deploy the static webpage using Serverless Framework and the Finch plugin.
+5. Deploy the static webpage using Serverless Framework and the Finch plugin.
 ```bash
 sls client deploy --region YOUR_PREFERRED_REGION --stage YOUR_PREFERRED_STAGE
 ```
-8. Create an dynamodb.json file in the root folder based on the dynamodb.json.template contents. Replace YOUR_DYNAMODB_TABLE_NAME with your DynamoDB table name.
+6. Create an dynamodb.json file in the root folder based on the dynamodb.json.template contents. Replace YOUR_DYNAMODB_TABLE_NAME with your DynamoDB table name.
 ```bash
 {
     "YOUR_DYNAMODB_TABLE_NAME": [
         {
 ```
-9. Populate the DynamoDB table with data using AWS CLI and the created json file.
+7. Populate the DynamoDB table with data using AWS CLI and the created json file.
 ```bash
 aws dynamodb batch-write-item --request-items file://dynamodb.json
 ```
-10. Try it out!
+8. Try it out!
 
 ## Notes
 
@@ -69,7 +58,7 @@ This is still a really early version of the app. Features will be added on a reg
 
 ### 2020-02-21 v0.3
 
-* 
+* Version for failure-lambda and NodeJS
 
 ### 2019-07-16 v0.2
 
