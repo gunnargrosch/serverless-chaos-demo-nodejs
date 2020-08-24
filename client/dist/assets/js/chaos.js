@@ -30,8 +30,10 @@ function updateFunction2() {
         async: true,
         dataType: 'json',
         error: function (jqXHR, textStatus, errorThrown) {
-            console.log('jqXHR:');
+            console.log('jqXHR error:');
             console.log(jqXHR);
+            console.log(errorThrown);
+            console.log(jqXHR.getAllResponseHeaders());
             function21status.textContent = 'Status ' + jqXHR.status + ' ' + textStatus;
             function21content.textContent = errorThrown;
         },

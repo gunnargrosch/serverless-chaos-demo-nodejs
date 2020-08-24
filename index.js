@@ -26,7 +26,7 @@ exports.handler = failureLambda(async (event, context) => {
         };
         return errorResponse;
       }
-      result.Item.Duration = 3000-context.getRemainingTimeInMillis()
+      result.Item.Duration = context.getRemainingTimeInMillis()
       response = {
         'statusCode': 200,
         'headers': {
