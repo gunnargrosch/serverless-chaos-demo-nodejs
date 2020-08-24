@@ -5,7 +5,6 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "failure-lambda": "^0.2.0",
-    "serverless-finch": "^2.4.2"
+    "failure-lambda": "^0.3.0"
   }
 }
