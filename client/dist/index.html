@@ -1,151 +1,309 @@
-<!DOCTYPE HTML>
-<html>
-
+<!DOCTYPE html>
+<html lang="en">
 <head>
-	<title>Serverless Chaos Demo</title>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-	<meta name="description" content="This demo site uses Gunnar Grosch's failure-lambda NPM package to perform chaos engineering experiments on a serverless environment. There is also failure-azurefunctions NPM package and failure-cloudfunctions NPM package.">
-	<link rel="stylesheet" href="assets/css/main.css" />
-	<noscript>
-		<link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
-	<link rel="icon" href="favicon.ico" type="image/x-icon" />
-	<meta name="twitter:card" content="summary_large_image">
-	<meta name="twitter:site" content="@serverlesschaos">
-	<meta name="twitter:title" content="Serverless Chaos Demo">
-	<meta name="twitter:description" content="This demo site uses Gunnar Grosch's failure-lambda NPM package to perform chaos engineering experiments on a serverless environment.">
-	<meta name="twitter:image" content="https://cdn.grosch.se/serverlesschaos/serverlesschaos-card.png">
-	<meta property="og:title" content="Serverless Chaos Demo">
-  <meta property="og:description" content="This demo site uses Gunnar Grosch's failure-lambda NPM package to perform chaos engineering experiments on a serverless environment.">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Serverless Chaos Demo</title>
+  <meta name="description" content="Chaos engineering demo for AWS Lambda using failure-lambda v1.0.0">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Serverless Chaos Demo">
+  <meta name="twitter:description" content="Chaos engineering demo for AWS Lambda using failure-lambda v1.0.0">
+  <meta name="twitter:image" content="https://cdn.grosch.se/serverlesschaos/serverlesschaos-card.png">
+  <meta property="og:title" content="Serverless Chaos Demo">
+  <meta property="og:description" content="Chaos engineering demo for AWS Lambda using failure-lambda v1.0.0">
   <meta property="og:image" content="https://cdn.grosch.se/serverlesschaos/serverlesschaos-card.png">
   <meta property="og:url" content="https://serverlesschaos.com">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface-hover: #222632;
+      --border: #2a2e3a;
+      --text: #e1e4eb;
+      --text-muted: #8b90a0;
+      --accent: #6c8cff;
+      --green: #34d399;
+      --red: #f87171;
+      --orange: #fbbf24;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 2rem 2rem 1rem;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      max-width: 40rem;
+      margin: 0 auto;
+    }
+
+    header a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    header a:hover {
+      text-decoration: underline;
+    }
+
+    main {
+      flex: 1;
+      padding: 1rem 2rem 2rem;
+      max-width: 80rem;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+    }
+
+    .card-header {
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.2rem 0.6rem;
+      border-radius: 1rem;
+      background: rgba(108, 140, 255, 0.15);
+      color: var(--accent);
+    }
+
+    .badge.python {
+      background: rgba(52, 211, 153, 0.15);
+      color: var(--green);
+    }
+
+    .card-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      display: block;
+      background: var(--surface-hover);
+    }
+
+    .card-stats {
+      padding: 1rem 1.25rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .stat-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-value.ok {
+      color: var(--green);
+    }
+
+    .stat-value.error {
+      color: var(--red);
+    }
+
+    .stat-value.pending {
+      color: var(--text-muted);
+    }
+
+    .card-error {
+      padding: 0 1.25rem 1rem;
+      font-size: 0.8rem;
+      color: var(--red);
+      min-height: 1.2rem;
+    }
+
+    .indicator {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 0.4rem;
+      vertical-align: middle;
+      background: var(--text-muted);
+    }
+
+    .indicator.ok {
+      background: var(--green);
+      box-shadow: 0 0 6px rgba(52, 211, 153, 0.5);
+    }
+
+    .indicator.error {
+      background: var(--red);
+      box-shadow: 0 0 6px rgba(248, 113, 113, 0.5);
+    }
+
+    footer {
+      padding: 1.5rem 2rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+    }
+
+    footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      color: var(--text);
+    }
+
+    @media (max-width: 768px) {
+      .cards {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
+<body>
 
-<body class="is-preload">
-	<!-- Wrapper -->
-	<div id="wrapper">
+  <header>
+    <h1>Serverless Chaos Demo</h1>
+    <p>
+      Three Lambda functions, three integration paths, one
+      <a href="https://github.com/gunnargrosch/failure-lambda">failure-lambda</a> library.
+      Each card polls its endpoint every 5 seconds.
+    </p>
+  </header>
 
-		<!-- Header -->
-		<header id="header">
-			<div class="inner">
+  <main>
+    <div class="cards">
+      <div class="card" id="card-wrapper">
+        <div class="card-header">
+          <span class="card-title"><span class="indicator" id="ind-wrapper"></span>Wrapper</span>
+          <span class="badge">Node.js</span>
+        </div>
+        <img class="card-image" id="img-wrapper" src="images/022a6735-30e8-4685-9b45-3b032ba903a7.jpg" alt="">
+        <div class="card-stats">
+          <div class="stat">
+            <span class="stat-label">Response</span>
+            <span class="stat-value pending" id="time-wrapper">&mdash;</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Status</span>
+            <span class="stat-value pending" id="status-wrapper">&mdash;</span>
+          </div>
+        </div>
+        <div class="card-error" id="error-wrapper"></div>
+      </div>
 
-				<!-- Logo -->
-				<a href="index.html" class="logo">
-					<img src="images/serverlesschaos-logo.png" alt="" />
-				</a>
+      <div class="card" id="card-middy">
+        <div class="card-header">
+          <span class="card-title"><span class="indicator" id="ind-middy"></span>Middy</span>
+          <span class="badge">Node.js</span>
+        </div>
+        <img class="card-image" id="img-middy" src="images/a3c0d8d9-07fa-4f04-bf80-c0d05dd32fa4.jpg" alt="">
+        <div class="card-stats">
+          <div class="stat">
+            <span class="stat-label">Response</span>
+            <span class="stat-value pending" id="time-middy">&mdash;</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Status</span>
+            <span class="stat-value pending" id="status-middy">&mdash;</span>
+          </div>
+        </div>
+        <div class="card-error" id="error-middy"></div>
+      </div>
 
-				<!-- Nav -->
-				<nav>
-					<ul>
-						<li><a href="#menu">Menu</a></li>
-					</ul>
-				</nav>
+      <div class="card" id="card-layer">
+        <div class="card-header">
+          <span class="card-title"><span class="indicator" id="ind-layer"></span>Layer</span>
+          <span class="badge python">Python</span>
+        </div>
+        <img class="card-image" id="img-layer" src="images/d0560445-3778-49c0-8c2d-eda78b115d8b.jpg" alt="">
+        <div class="card-stats">
+          <div class="stat">
+            <span class="stat-label">Response</span>
+            <span class="stat-value pending" id="time-layer">&mdash;</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Status</span>
+            <span class="stat-value pending" id="status-layer">&mdash;</span>
+          </div>
+        </div>
+        <div class="card-error" id="error-layer"></div>
+      </div>
+    </div>
+  </main>
 
-			</div>
-		</header>
+  <footer>
+    <a href="https://github.com/gunnargrosch/failure-lambda">failure-lambda</a> &middot;
+    <a href="https://github.com/gunnargrosch/serverless-chaos-demo-nodejs">Source</a> &middot;
+    Made by <a href="https://github.com/gunnargrosch">Gunnar Grosch</a>
+  </footer>
 
-		<!-- Menu -->
-		<nav id="menu">
-			<h2>Menu</h2>
-			<ul>
-				<li><a href="index.html">Home</a></li>
-				<li><a href="https://twitter.com/serverlesschaos" target="_blank">Serverless Chaos on Twitter</a></li>
-				<li><a href="https://github.com/gunnargrosch/serverless-chaos-demo-nodejs" target="_blank">Serverless Chaos
-						Demo on Github</a></li>
-				<li><a href="https://github.com/gunnargrosch/failure-lambda" target="_blank">NPM package failure-lambda on
-						Github</a></li>
-				<li><a href="https://github.com/gunnargrosch/failure-azurefunctions" target="_blank">NPM package failure-azurefunctions on
-						Github</a></li>
-				<li><a href="https://github.com/gunnargrosch/failure-cloudfunctions" target="_blank">NPM package failure-cloudfunctions on
-						Github</a></li>
-			</ul>
-		</nav>
-
-		<!-- Main -->
-		<div id="main">
-			<div class="inner">
-				<header>
-					<h1>Serverless Chaos Demo site</h1>
-					<p>This demo site uses <a href="https://twitter.com/gunnargrosch" target="_blank">Gunnar Grosch</a>'s <a
-						href="https://github.com/gunnargrosch/failure-lambda"
-						target="_blank">failure-lambda</a> NPM package
-						to perform chaos engineering experiments on a serverless environment. There is also <a
-						href="https://github.com/gunnargrosch/failure-azurefunctions"
-						target="_blank">failure-azurefunctions</a> NPM package and <a
-						href="https://github.com/gunnargrosch/failure-cloudfunctions"
-						target="_blank">failure-cloudfunctions</a> NPM package.</p>
-					<p>More information on installation, configuration and usage at <a
-							href="https://github.com/gunnargrosch/serverless-chaos-demo-nodejs"
-							target="_blank">https://github.com/gunnargrosch/serverless-chaos-demo-nodejs</a>.</p>
-				</header>
-				<section class="tiles">
-					<article class="style1">
-						<span class="image">
-							<img id="function11img" src="images/022a6735-30e8-4685-9b45-3b032ba903a7.jpg" height="270" alt="" />
-						</span>
-						<a href="#" onclick="updateFunction1()">
-							<h2 id="function11">Function 1</h2>
-							<h4 id="function11status">&nbsp;</h2>
-								<div class="content" id="function11content">
-									<p>&nbsp;</p>
-								</div>
-						</a>
-					</article>
-					<article class="style1">
-						<span class="image">
-							<img id="function21img" src="images/a3c0d8d9-07fa-4f04-bf80-c0d05dd32fa4.jpg" height="270" alt="" />
-						</span>
-						<a href="#" onclick="updateFunction2()">
-							<h2 id="function21">Function 2</h2>
-							<h4 id="function21status">&nbsp;</h2>
-								<div class="content" id="function21content">
-									<p>&nbsp;</p>
-								</div>
-						</a>
-					</article>
-					<article class="style1">
-						<span class="image">
-							<img id="function31img" src="images/d0560445-3778-49c0-8c2d-eda78b115d8b.jpg" height="270" alt="" />
-						</span>
-						<a href="#" onclick="updateFunction3()">
-							<h2 id="function31">Function 3</h2>
-							<h4 id="function31status">&nbsp;</h2>
-								<div class="content" id="function31content">
-									<p>&nbsp;</p>
-								</div>
-						</a>
-					</article>
-				</section>
-			</div>
-		</div>
-
-		<!-- Footer -->
-		<footer id="footer">
-			<div class="inner">
-				<ul class="copyright">
-					<li><a href="index.html">Home</a></li>
-					<li><a href="https://twitter.com/serverlesschaos" target="_blank">Serverless Chaos on Twitter</a></li>
-					<li><a href="https://github.com/gunnargrosch/serverless-chaos-demo-nodejs" target="_blank">Serverless Chaos
-							Demo</a></li>
-					<li><a href="https://github.com/gunnargrosch/failure-lambda" target="_blank">failure-lambda</a></li>
-					<li><a href="https://github.com/gunnargrosch/failure-azurefunctions" target="_blank">failure-azurefunctions</a></li>
-					<li><a href="https://github.com/gunnargrosch/failure-cloudfunctions" target="_blank">failure-cloudfunctions</a></li>
-					<li>Made with love for chaos by <a href="https://twitter.com/gunnargrosch" target="_blank">Gunnar Grosch</a></li>
-				</ul>
-			</div>
-		</footer>
-
-	</div>
-
-	<!-- Scripts -->
-	<script src="assets/js/jquery.min.js"></script>
-	<script src="assets/js/browser.min.js"></script>
-	<script src="assets/js/breakpoints.min.js"></script>
-	<script src="assets/js/env.js"></script>
-	<script src="assets/js/util.js"></script>
-	<script src="assets/js/main.js"></script>
-	<script src="assets/js/chaos.js"></script>
-
+  <script src="assets/js/env.js"></script>
+  <script src="assets/js/chaos.js"></script>
 </body>
-
 </html>

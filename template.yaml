@@ -1,0 +1,198 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Serverless chaos engineering demo — three Lambda functions, each using
+  a different failure-lambda v1.0.0 integration path (wrapper, Middy, layer).
+
+Parameters:
+  FailureLambdaLayerArn:
+    Type: String
+    Description: ARN of the published failure-lambda layer (for the Python function)
+
+Globals:
+  Function:
+    Timeout: 3
+    MemorySize: 128
+
+Resources:
+
+  # --- API ---
+
+  ChaosApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowMethods:
+          - GET
+        AllowHeaders:
+          - '*'
+        AllowOrigins:
+          - '*'
+
+  # --- DynamoDB ---
+
+  ChaosTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Delete
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: N
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  # --- SSM Parameters (one per function, default empty = no injection) ---
+
+  WrapperConfig:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: '{}'
+
+  MiddyConfig:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: '{}'
+
+  LayerConfig:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: '{}'
+
+  # --- Function 1: Wrapper (Node.js) ---
+
+  WrapperFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs22.x
+      CodeUri: src/wrapper/
+      Policies:
+        - SSMParameterReadPolicy:
+            ParameterName: !Ref WrapperConfig
+        - DynamoDBReadPolicy:
+            TableName: !Ref ChaosTable
+      Environment:
+        Variables:
+          FAILURE_INJECTION_PARAM: !Ref WrapperConfig
+          TABLE_NAME: !Ref ChaosTable
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /wrapper
+            Method: GET
+            ApiId: !Ref ChaosApi
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2022
+        Format: esm
+        Sourcemap: true
+        EntryPoints:
+          - index.mjs
+        OutExtension:
+          - .js=.mjs
+        Banner:
+          - js=import { createRequire } from "module"; const require = createRequire(import.meta.url);
+        External:
+          - '@aws-sdk/*'
+
+  # --- Function 2: Middy (Node.js) ---
+
+  MiddyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs22.x
+      CodeUri: src/middy/
+      Policies:
+        - SSMParameterReadPolicy:
+            ParameterName: !Ref MiddyConfig
+        - DynamoDBReadPolicy:
+            TableName: !Ref ChaosTable
+      Environment:
+        Variables:
+          FAILURE_INJECTION_PARAM: !Ref MiddyConfig
+          TABLE_NAME: !Ref ChaosTable
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /middy
+            Method: GET
+            ApiId: !Ref ChaosApi
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2022
+        Format: esm
+        Sourcemap: true
+        EntryPoints:
+          - index.mjs
+        OutExtension:
+          - .js=.mjs
+        Banner:
+          - js=import { createRequire } from "module"; const require = createRequire(import.meta.url);
+        External:
+          - '@aws-sdk/*'
+
+  # --- Function 3: Layer (Python) ---
+
+  LayerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.handler
+      Runtime: python3.13
+      CodeUri: src/layer/
+      Layers:
+        - !Ref FailureLambdaLayerArn
+      Policies:
+        - SSMParameterReadPolicy:
+            ParameterName: !Ref LayerConfig
+        - DynamoDBReadPolicy:
+            TableName: !Ref ChaosTable
+      Environment:
+        Variables:
+          AWS_LAMBDA_EXEC_WRAPPER: /opt/failure-lambda-wrapper
+          FAILURE_INJECTION_PARAM: !Ref LayerConfig
+          TABLE_NAME: !Ref ChaosTable
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /layer
+            Method: GET
+            ApiId: !Ref ChaosApi
+
+Outputs:
+  ApiUrl:
+    Description: Base URL of the HTTP API
+    Value: !Sub "https://${ChaosApi}.execute-api.${AWS::Region}.amazonaws.com"
+  WrapperUrl:
+    Description: Function 1 (wrapper) endpoint
+    Value: !Sub "https://${ChaosApi}.execute-api.${AWS::Region}.amazonaws.com/wrapper"
+  MiddyUrl:
+    Description: Function 2 (Middy) endpoint
+    Value: !Sub "https://${ChaosApi}.execute-api.${AWS::Region}.amazonaws.com/middy"
+  LayerUrl:
+    Description: Function 3 (layer/Python) endpoint
+    Value: !Sub "https://${ChaosApi}.execute-api.${AWS::Region}.amazonaws.com/layer"
+  WrapperConfigParam:
+    Description: SSM parameter for Function 1 (wrapper)
+    Value: !Ref WrapperConfig
+  MiddyConfigParam:
+    Description: SSM parameter for Function 2 (Middy)
+    Value: !Ref MiddyConfig
+  LayerConfigParam:
+    Description: SSM parameter for Function 3 (layer)
+    Value: !Ref LayerConfig
+  TableName:
+    Description: DynamoDB table name
+    Value: !Ref ChaosTable

@@ -1,8 +1,22 @@
-.serverless
-.vscode
+# SAM
+.aws-sam/
+samconfig.toml
+
+# Dependencies
+node_modules/
+
+# IDE
+.vscode/
+
+# Python
 *.pyc
 *.pyo
-venv
-node_modules
-env.yml
+__pycache__/
+venv/
+
+# Generated
 dynamodb.json
+client/dist/assets/js/env.js
+
+# OS
+.DS_Store

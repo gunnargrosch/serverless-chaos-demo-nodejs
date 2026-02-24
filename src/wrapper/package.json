@@ -1,0 +1,6 @@
+{
+  "type": "module",
+  "dependencies": {
+    "failure-lambda": "^1.0.0"
+  }
+}

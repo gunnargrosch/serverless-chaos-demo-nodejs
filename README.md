@@ -1,79 +1,135 @@
 # Serverless Chaos Engineering Demo
 
-This demo site uses Gunnar Grosch's failure-lambda NPM package (https://github.com/gunnargrosch/failure-lambda) to perform chaos engineering experiments on a serverless environment. More information on installation, configuration and usage at https://github.com/gunnargrosch/serverless-chaos-demo.
+Demo application for [failure-lambda](https://github.com/gunnargrosch/failure-lambda) v1.0.0 — chaos engineering for AWS Lambda.
 
-## Description
+Three Lambda functions behind an HTTP API, each using a different failure-lambda integration path:
 
-The demo application consists of a simple serverless app containing three different functions behind an API Gateway and a static webpage showing the result of these functions. The functions fetch an url for an image at random from a DynamoDB table. An example can be seen at (https://demo.serverlesschaos.com/). By using the failure-labda NPM package you are able to inject failure to each function and see on the page what happens.
+| Function | Runtime | Integration | How it works |
+|----------|---------|-------------|--------------|
+| Wrapper | Node.js 22.x | `failureLambda()` | Import the library and wrap your handler |
+| Middy | Node.js 22.x | `failureLambdaMiddleware()` | Add as Middy middleware plugin |
+| Layer | Python 3.13 | Lambda Layer | Zero code changes — layer intercepts the Runtime API |
 
-![Serverless Chaos Demo Architecture](client/dist/images/serverless-chaos-demo-architecture.png?raw=true "Serverless Chaos Demo Architecture")
+All three functions fetch a random item from DynamoDB and return it. A static frontend polls the endpoints every 5 seconds, showing response times and status codes side by side — making it easy to see the impact of injected failures.
 
-## Videos showing demos
+![Architecture](client/dist/images/serverless-chaos-demo-architecture.png)
 
-* https://www.youtube.com/watch?v=vKurdrGMFpg
-* https://www.youtube.com/watch?v=Cw-JmAJHG-g
-* https://www.youtube.com/watch?v=xxogwzUMg7c
+## Prerequisites
 
-## How to install
+- [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
+- Node.js 22.x
+- AWS credentials configured
+- failure-lambda layer published in your account (download from [releases](https://github.com/gunnargrosch/failure-lambda/releases/latest))
 
-This is prepared to be installed using the Serverless Framework (https://serverless.com) and the Finch plugin. Make sure to have the Failure Injection Layer installed in your account (https://github.com/adhorn/FailureInjectionLayer) and an S3 bucket dedicated for the static webpage (the plugin will remove all contents before uploading).
+### Publish the layer
 
-1. Clone the repository.
-2. Install Serverless Framework (if you don't already have it installed).
 ```bash
-npm install -g serverless
+aws lambda publish-layer-version \
+  --layer-name failure-lambda \
+  --zip-file fileb://failure-lambda-layer-x86_64.zip \
+  --compatible-architectures x86_64 \
+  --region YOUR_REGION
 ```
-3. Deploy the serverless application using Serverless Framework.
+
+Note the `LayerVersionArn` from the output — you'll need it during deployment.
+
+## Deploy
+
+1. Build and deploy:
+
 ```bash
-sls deploy --region YOUR_PREFERRED_REGION --stage YOUR_PREFERRED_STAGE
+sam build
+sam deploy --guided
 ```
-4. Create an env.js file in the folder ./client/dist/assets/js/ based on the env.js.template contents (located in the same folder) with the endpoints from sls deploy output.
+
+When prompted, provide the `FailureLambdaLayerArn` parameter with the ARN from the layer publish step.
+
+2. Note the stack outputs (`ApiUrl`, `TableName`, and the three SSM parameter names).
+
+3. Seed DynamoDB:
+
 ```bash
-//Enter your API Gateway endpoints for each function here
-var function1 = "<function1 api gateway endpoint>";
-var function2 = "<function2 api gateway endpoint>";
-var function3 = "<function3 api gateway endpoint>";
+cp dynamodb.json.template dynamodb.json
 ```
-5. Deploy the static webpage using Serverless Framework and the Finch plugin.
-```bash
-sls client deploy --region YOUR_PREFERRED_REGION --stage YOUR_PREFERRED_STAGE
-```
-6. Create an dynamodb.json file in the root folder based on the dynamodb.json.template contents. Replace YOUR_DYNAMODB_TABLE_NAME with your DynamoDB table name.
-```bash
-{
-    "YOUR_DYNAMODB_TABLE_NAME": [
-        {
-```
-7. Populate the DynamoDB table with data using AWS CLI and the created json file.
+
+Replace `YOUR_DYNAMODB_TABLE_NAME` with the `TableName` output, then:
+
 ```bash
 aws dynamodb batch-write-item --request-items file://dynamodb.json
 ```
-8. Try it out!
 
-## Notes
+4. Configure the frontend:
 
-This is still a really early version of the app. Features will be added on a regular basis.
+```bash
+cp client/dist/assets/js/env.js.template client/dist/assets/js/env.js
+```
 
-## Changelog
+Edit `env.js` and set `apiBase` to your `ApiUrl` output.
 
-### 2020-02-21 v0.3
+5. Open `client/dist/index.html` in a browser (or host `client/dist/` via S3, CloudFront, or a local server).
 
-* Version for failure-lambda and NodeJS
+## Inject failures
 
-### 2019-07-16 v0.2
+Each function has its own SSM parameter. Use the failure-lambda CLI or update SSM directly.
 
-* New UI with more visibility
-* AWS X-Ray enabled by default
+### Using the CLI
 
-### 2019-07-10 v0.15
+```bash
+# Check current config
+npx failure-lambda status --param PARAMETER_NAME
 
-* Variables moved to env.yml (Thanks to Adrian Hornsby)
-* Support for the new version of the Failure Injection Layer (Thanks to Adrian Hornsby)
+# Enable latency injection
+npx failure-lambda enable latency --param PARAMETER_NAME
 
-### 2019-07-09 v0.1
+# Disable all injection
+npx failure-lambda disable --all --param PARAMETER_NAME
+```
 
-* Initial release
+### Using SSM directly
 
-## Authors
+```bash
+aws ssm put-parameter --name PARAMETER_NAME --type String --overwrite \
+  --value '{"latency":{"enabled":true,"percentage":100,"min_latency":200,"max_latency":500}}'
+```
 
-**Gunnar Grosch** - [GitHub](https://github.com/gunnargrosch) | [Twitter](https://twitter.com/gunnargrosch) | [LinkedIn](https://www.linkedin.com/in/gunnargrosch/)
+Replace `PARAMETER_NAME` with the SSM parameter for the function you want to target (`WrapperConfigParam`, `MiddyConfigParam`, or `LayerConfigParam` from the stack outputs).
+
+### Failure modes
+
+| Mode | Effect |
+|------|--------|
+| `latency` | Adds random delay before the handler runs |
+| `statuscode` | Returns an HTTP status code, skipping the handler |
+| `exception` | Throws an exception, skipping the handler |
+| `denylist` | Blocks outgoing requests to matching hostnames |
+| `diskspace` | Fills /tmp to simulate disk pressure |
+| `timeout` | Sleeps until the function times out |
+| `corruption` | Replaces the response body after the handler runs |
+
+See the [failure-lambda README](https://github.com/gunnargrosch/failure-lambda#failure-modes) for full configuration details.
+
+## Clean up
+
+```bash
+sam delete
+```
+
+Then delete the layer version if no longer needed:
+
+```bash
+aws lambda delete-layer-version --layer-name failure-lambda --version-number VERSION
+```
+
+## Videos
+
+- https://www.youtube.com/watch?v=vKurdrGMFpg
+- https://www.youtube.com/watch?v=Cw-JmAJHG-g
+- https://www.youtube.com/watch?v=xxogwzUMg7c
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+## Author
+
+**Gunnar Grosch** — [GitHub](https://github.com/gunnargrosch) | [LinkedIn](https://www.linkedin.com/in/gunnargrosch/)

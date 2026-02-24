@@ -1,81 +1,64 @@
-function updateFunction1() {
-    $.ajax({
-        type: 'GET',
-        url: function1,
-        startTime: performance.now(),
-        async: true,
-        dataType: 'json',
-        error: function (jqXHR, textStatus, errorThrown) {
-            console.log('jqXHR:');
-            console.log(jqXHR);
-            function11status.textContent = 'Status ' + jqXHR.status + ' ' + textStatus;
-            function11content.textContent = errorThrown;
-        },
-        success: function (data, textStatus, jqXHR) {
-            console.log('jqXHR:');
-            console.log(jqXHR);
-            var duration = performance.now() - this.startTime;
-            duration = duration.toFixed(0);
-            function11.textContent = 'Function 1 (' + duration + ' ms)';
-            function11status.textContent = 'Status ' + jqXHR.status + ' ' + textStatus;
-            function11img.src = data.itemUrl;
-        }
-    });
-}
-function updateFunction2() {
-    $.ajax({
-        type: 'GET',
-        url: function2,
-        startTime: performance.now(),
-        async: true,
-        dataType: 'json',
-        error: function (jqXHR, textStatus, errorThrown) {
-            console.log('jqXHR error:');
-            console.log(jqXHR);
-            console.log(errorThrown);
-            console.log(jqXHR.getAllResponseHeaders());
-            function21status.textContent = 'Status ' + jqXHR.status + ' ' + textStatus;
-            function21content.textContent = errorThrown;
-        },
-        success: function (data, textStatus, jqXHR) {
-            console.log('jqXHR:');
-            console.log(jqXHR);
-            var duration = performance.now() - this.startTime;
-            duration = duration.toFixed(0);
-            function21.textContent = 'Function 2 (' + duration + ' ms)';
-            function21status.textContent = 'Status ' + jqXHR.status + ' ' + textStatus;
-            function21img.src = data.itemUrl;
-        }
-    });
-}
-function updateFunction3() {
-    $.ajax({
-        type: 'GET',
-        url: function3,
-        startTime: performance.now(),
-        async: true,
-        dataType: 'json',
-        error: function (jqXHR, textStatus, errorThrown) {
-            console.log('jqXHR:');
-            console.log(jqXHR);
-            function31status.textContent = 'Status ' + jqXHR.status + ' ' + textStatus;
-            function31content.textContent = errorThrown;
-        },
-        success: function (data, textStatus, jqXHR) {
-            console.log('jqXHR:');
-            console.log(jqXHR);
-            var duration = performance.now() - this.startTime;
-            duration = duration.toFixed(0);
-            function31.textContent = 'Function 3 (' + duration + ' ms)';
-            function31status.textContent = 'Status ' + jqXHR.status + ' ' + textStatus;
-            function31img.src = data.itemUrl;
-        }
-    });
+/* global apiBase */
+
+if (typeof apiBase === "undefined" || apiBase === "<your-api-url>") {
+  document.querySelector("main").innerHTML =
+    '<p style="text-align:center;color:var(--red);padding:2rem;">' +
+    "Missing configuration &mdash; copy <code>env.js.template</code> to " +
+    "<code>env.js</code> and set <code>apiBase</code> to your API URL.</p>";
+  throw new Error("apiBase not configured");
 }
 
-window.onload = function () {
+const POLL_INTERVAL = 5000;
 
-    setInterval(updateFunction1, 5000);
-    setInterval(updateFunction2, 5000);
-    setInterval(updateFunction3, 5000);
+const functions = [
+  { name: "wrapper", path: "/wrapper" },
+  { name: "middy",   path: "/middy" },
+  { name: "layer",   path: "/layer" },
+];
+
+async function poll(fn) {
+  const timeEl   = document.getElementById(`time-${fn.name}`);
+  const statusEl = document.getElementById(`status-${fn.name}`);
+  const imgEl    = document.getElementById(`img-${fn.name}`);
+  const indEl    = document.getElementById(`ind-${fn.name}`);
+  const errorEl  = document.getElementById(`error-${fn.name}`);
+
+  const start = performance.now();
+
+  try {
+    const res = await fetch(apiBase + fn.path);
+    const duration = Math.round(performance.now() - start);
+
+    timeEl.textContent = `${duration} ms`;
+    statusEl.textContent = res.status;
+    errorEl.textContent = "";
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.itemUrl) {
+        imgEl.src = data.itemUrl;
+      }
+      timeEl.className = "stat-value ok";
+      statusEl.className = "stat-value ok";
+      indEl.className = "indicator ok";
+    } else {
+      timeEl.className = "stat-value error";
+      statusEl.className = "stat-value error";
+      indEl.className = "indicator error";
+      errorEl.textContent = `HTTP ${res.status}`;
+    }
+  } catch (err) {
+    const duration = Math.round(performance.now() - start);
+    timeEl.textContent = `${duration} ms`;
+    timeEl.className = "stat-value error";
+    statusEl.textContent = "ERR";
+    statusEl.className = "stat-value error";
+    indEl.className = "indicator error";
+    errorEl.textContent = err.message;
+  }
 }
+
+functions.forEach((fn) => {
+  poll(fn);
+  setInterval(() => poll(fn), POLL_INTERVAL);
+});
