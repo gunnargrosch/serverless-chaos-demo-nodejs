@@ -1,0 +1,8 @@
+# Copy this file to samconfig.toml and fill in the values for your account.
+# samconfig.toml is gitignored to avoid committing account-specific settings.
+[default.deploy.parameters]
+stack_name     = "serverless-chaos-demo"
+region         = "us-east-1"
+confirm_changeset = true
+capabilities   = "CAPABILITY_IAM"
+parameter_overrides = "FailureLambdaLayerArn=arn:aws:lambda:us-east-1:YOUR_ACCOUNT_ID:layer:failure-lambda:1"
