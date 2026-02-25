@@ -38,6 +38,9 @@ async function poll(fn) {
       if (data.itemUrl) {
         imgEl.src = data.itemUrl;
       }
+      if (data.itemName) {
+        imgEl.alt = data.itemName;
+      }
       timeEl.className = "stat-value ok";
       statusEl.className = "stat-value ok";
       indEl.className = "indicator ok";
@@ -58,7 +61,9 @@ async function poll(fn) {
   }
 }
 
-functions.forEach((fn) => {
-  poll(fn);
-  setInterval(() => poll(fn), POLL_INTERVAL);
-});
+async function loop(fn) {
+  await poll(fn);
+  setTimeout(() => loop(fn), POLL_INTERVAL);
+}
+
+functions.forEach((fn) => loop(fn));

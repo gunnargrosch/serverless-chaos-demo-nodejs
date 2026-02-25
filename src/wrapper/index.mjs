@@ -19,15 +19,21 @@ export const baseHandler = async (event, context) => {
 
   if (!Item) {
     console.log(JSON.stringify({ action: "notFound", id }));
-    return { statusCode: 404, body: JSON.stringify({ error: "Item not found" }) };
+    return {
+      statusCode: 404,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "Item not found" }),
+    };
   }
 
-  Item.Duration = context.getRemainingTimeInMillis();
+  // Spread to avoid mutating the object returned from DynamoDB
+  const responseItem = { ...Item, remainingTime: context.getRemainingTimeInMillis() };
   console.log(JSON.stringify({ action: "success", id, itemName: Item.itemName }));
 
   return {
     statusCode: 200,
-    body: JSON.stringify(Item),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(responseItem),
   };
 };
 

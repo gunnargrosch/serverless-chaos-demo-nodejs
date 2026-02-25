@@ -21,6 +21,7 @@ Resources:
   ChaosApi:
     Type: AWS::Serverless::HttpApi
     Properties:
+      # Intentionally open CORS for demo purposes — restrict for production use.
       CorsConfiguration:
         AllowMethods:
           - GET
@@ -48,18 +49,21 @@ Resources:
   WrapperConfig:
     Type: AWS::SSM::Parameter
     Properties:
+      Name: !Sub "/chaos-demo/${AWS::StackName}/wrapper"
       Type: String
       Value: '{}'
 
   MiddyConfig:
     Type: AWS::SSM::Parameter
     Properties:
+      Name: !Sub "/chaos-demo/${AWS::StackName}/middy"
       Type: String
       Value: '{}'
 
   LayerConfig:
     Type: AWS::SSM::Parameter
     Properties:
+      Name: !Sub "/chaos-demo/${AWS::StackName}/layer"
       Type: String
       Value: '{}'
 

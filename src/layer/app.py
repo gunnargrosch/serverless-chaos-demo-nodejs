@@ -39,15 +39,17 @@ def handler(event, context):
         logger.info(json.dumps({"action": "notFound", "id": item_id}))
         return {
             "statusCode": 404,
+            "headers": {"Content-Type": "application/json"},
             "body": json.dumps({"error": "Item not found"}),
         }
 
-    item["Duration"] = context.get_remaining_time_in_millis()
+    item["remainingTime"] = context.get_remaining_time_in_millis()
     logger.info(
         json.dumps({"action": "success", "id": item_id, "itemName": item.get("itemName")})
     )
 
     return {
         "statusCode": 200,
+        "headers": {"Content-Type": "application/json"},
         "body": json.dumps(item, cls=DecimalEncoder),
     }

@@ -18,6 +18,7 @@ All three functions fetch a random item from DynamoDB and return it. A static fr
 
 - [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
 - Node.js 22.x
+- [jq](https://jqlang.org/) (used by the seed script)
 - AWS credentials configured
 - failure-lambda layer published in your account (download from [releases](https://github.com/gunnargrosch/failure-lambda/releases/latest))
 
@@ -49,14 +50,10 @@ When prompted, provide the `FailureLambdaLayerArn` parameter with the ARN from t
 3. Seed DynamoDB:
 
 ```bash
-cp dynamodb.json.template dynamodb.json
+npm run seed -- TABLE_NAME
 ```
 
-Replace `YOUR_DYNAMODB_TABLE_NAME` with the `TableName` output, then:
-
-```bash
-aws dynamodb batch-write-item --request-items file://dynamodb.json
-```
+Replace `TABLE_NAME` with the `TableName` stack output.
 
 4. Configure the frontend:
 
@@ -119,6 +116,12 @@ Then delete the layer version if no longer needed:
 ```bash
 aws lambda delete-layer-version --layer-name failure-lambda --version-number VERSION
 ```
+
+## Project structure
+
+The root `package.json` is a task runner for build, deploy, seed, and test scripts. Lambda runtime dependencies live in each function's own `package.json` under `src/` and are bundled by SAM's esbuild integration. The root `devDependencies` exist only so the Node.js test runner can resolve imports when running tests locally.
+
+The `client/dist/` directory contains pre-built static frontend assets with no build step — edit the HTML/CSS/JS files directly.
 
 ## Videos
 

@@ -22,7 +22,7 @@ describe("middy handler", () => {
     assert.equal(result.statusCode, 200);
     const body = JSON.parse(result.body);
     assert.equal(body.itemName, "Five");
-    assert.equal(body.Duration, 2500);
+    assert.equal(body.remainingTime, 2500);
   });
 
   it("should return 404 when item is not found", async () => {
@@ -44,5 +44,15 @@ describe("middy handler", () => {
     const command = sendMock.mock.calls[0].arguments[0];
     assert.equal(command.input.TableName, "test-table");
     assert.ok(command.input.Key.id >= 1 && command.input.Key.id <= 16);
+  });
+
+  it("should not mutate the DynamoDB item object", async () => {
+    const mockItem = { id: 6, itemName: "Six", itemUrl: "/images/test.jpg" };
+    mock.method(dynamoDb, "send", async () => ({ Item: mockItem }));
+
+    await baseHandler({}, mockContext);
+
+    // remainingTime must not be added to the original object
+    assert.equal(mockItem.remainingTime, undefined);
   });
 });
