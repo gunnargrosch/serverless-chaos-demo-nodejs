@@ -24,9 +24,14 @@ async function poll(fn) {
   const errorEl  = document.getElementById(`error-${fn.name}`);
 
   const start = performance.now();
+  const controller = new AbortController();
+  // Abort after 10 s so a hung request (e.g. timeout injection) doesn't
+  // block the UI indefinitely.
+  const timer = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const res = await fetch(apiBase + fn.path);
+    const res = await fetch(apiBase + fn.path, { signal: controller.signal });
+    clearTimeout(timer);
     const duration = Math.round(performance.now() - start);
 
     timeEl.textContent = `${duration} ms`;
@@ -51,13 +56,14 @@ async function poll(fn) {
       errorEl.textContent = `HTTP ${res.status}`;
     }
   } catch (err) {
+    clearTimeout(timer);
     const duration = Math.round(performance.now() - start);
     timeEl.textContent = `${duration} ms`;
     timeEl.className = "stat-value error";
-    statusEl.textContent = "ERR";
+    statusEl.textContent = err.name === "AbortError" ? "TIMEOUT" : "ERR";
     statusEl.className = "stat-value error";
     indEl.className = "indicator error";
-    errorEl.textContent = err.message;
+    errorEl.textContent = err.name === "AbortError" ? "Request timed out (10 s)" : err.message;
   }
 }
 
